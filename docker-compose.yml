@@ -1,0 +1,83 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: reconcile-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: reconcile
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - reconcile-net
+
+  transaction-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE: transaction-service
+    container_name: transaction-service
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: "8080"
+      DB_DSN: "root:root123@tcp(mysql:3306)/reconcile?charset=utf8mb4&parseTime=true"
+      APP_ENV: development
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - reconcile-net
+
+  asset-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE: asset-service
+    container_name: asset-service
+    ports:
+      - "8081:8081"
+    environment:
+      PORT: "8081"
+      DB_DSN: "root:root123@tcp(mysql:3306)/reconcile?charset=utf8mb4&parseTime=true"
+      APP_ENV: development
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - reconcile-net
+
+  notify-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE: notify-service
+    container_name: notify-service
+    ports:
+      - "8082:8082"
+    environment:
+      PORT: "8082"
+      DB_DSN: "root:root123@tcp(mysql:3306)/reconcile?charset=utf8mb4&parseTime=true"
+      APP_ENV: development
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - reconcile-net
+
+volumes:
+  mysql-data:
+
+networks:
+  reconcile-net:
+    driver: bridge

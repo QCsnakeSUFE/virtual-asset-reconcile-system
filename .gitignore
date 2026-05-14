@@ -1,0 +1,20 @@
+# Ignore all markdown files except README.md
+*.md
+!README.md
+
+# Binaries
+/bin/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local

@@ -7,10 +7,14 @@ import (
 
 	"virtual-asset-reconcile-system/internal/db"
 	"virtual-asset-reconcile-system/internal/middleware"
+	"virtual-asset-reconcile-system/internal/notify/handler"
+	"virtual-asset-reconcile-system/internal/notify/model"
 	"virtual-asset-reconcile-system/pkg/logger"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 func main() {
@@ -21,6 +25,10 @@ func main() {
 	database, err := db.InitDB()
 	if err != nil {
 		logger.L.Fatal("failed to init db", zap.Error(err))
+	}
+
+	if err := autoMigrate(database); err != nil {
+		logger.L.Fatal("failed to migrate db", zap.Error(err))
 	}
 
 	r := gin.New()
@@ -40,6 +48,18 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"status": "ok", "service": serviceName})
 	})
 
+	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
+
+	api := r.Group("/api/v1")
+	{
+		api.GET("/notify/status", func(c *gin.Context) {
+			handler.GetNotifyStatus(c, database)
+		})
+		api.POST("/notify/send", func(c *gin.Context) {
+			handler.SendNotify(c, database)
+		})
+	}
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8082"
@@ -49,4 +69,10 @@ func main() {
 	if err := r.Run(":" + port); err != nil {
 		log.Fatalf("server exit: %v", err)
 	}
+}
+
+func autoMigrate(db *gorm.DB) error {
+	return db.AutoMigrate(
+		&model.Notification{},
+	)
 }

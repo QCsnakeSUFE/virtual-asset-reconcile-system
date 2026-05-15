@@ -8,10 +8,13 @@ import (
 	"virtual-asset-reconcile-system/internal/db"
 	"virtual-asset-reconcile-system/internal/middleware"
 	"virtual-asset-reconcile-system/internal/transaction/handler"
+	"virtual-asset-reconcile-system/internal/transaction/model"
 	"virtual-asset-reconcile-system/pkg/logger"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 func main() {
@@ -22,6 +25,10 @@ func main() {
 	database, err := db.InitDB()
 	if err != nil {
 		logger.L.Fatal("failed to init db", zap.Error(err))
+	}
+
+	if err := autoMigrate(database); err != nil {
+		logger.L.Fatal("failed to migrate db", zap.Error(err))
 	}
 
 	r := gin.New()
@@ -41,13 +48,23 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"status": "ok", "service": serviceName})
 	})
 
-	r.POST("/api/v1/orders/purchase", func(c *gin.Context) {
-		handler.Purchase(c, database)
-	})
+	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
-	r.POST("/api/v1/payment/callback", func(c *gin.Context) {
-		handler.PaymentCallback(c, database)
-	})
+	api := r.Group("/api/v1")
+	{
+		api.POST("/orders/purchase", func(c *gin.Context) {
+			handler.Purchase(c, database)
+		})
+		api.POST("/orders/payment/callback", func(c *gin.Context) {
+			handler.PaymentCallback(c, database)
+		})
+		api.GET("/orders/:order_no", func(c *gin.Context) {
+			handler.GetOrder(c, database)
+		})
+		api.POST("/reconcile/run", func(c *gin.Context) {
+			handler.ReconcileRun(c, database)
+		})
+	}
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -58,4 +75,12 @@ func main() {
 	if err := r.Run(":" + port); err != nil {
 		log.Fatalf("server exit: %v", err)
 	}
+}
+
+func autoMigrate(db *gorm.DB) error {
+	return db.AutoMigrate(
+		&model.Order{},
+		&model.OrderItem{},
+		&model.OutboxMessage{},
+	)
 }

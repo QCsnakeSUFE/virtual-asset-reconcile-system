@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 
+	"virtual-asset-reconcile-system/internal/notify/service"
 	"virtual-asset-reconcile-system/pkg/response"
 
 	"github.com/gin-gonic/gin"
@@ -16,9 +17,25 @@ func GetNotifyStatus(c *gin.Context, db *gorm.DB) {
 		return
 	}
 
-	response.Error(c, http.StatusNotImplemented, 3002, "GetNotifyStatus not implemented - 由你来实现")
+	notification, err := service.GetNotifyStatus(c.Request.Context(), db, orderNo)
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, 3002, err.Error())
+		return
+	}
+	response.Success(c, notification)
 }
 
 func SendNotify(c *gin.Context, db *gorm.DB) {
-	response.Error(c, http.StatusNotImplemented, 3003, "SendNotify not implemented - 由你来实现")
+	var req service.SendNotifyRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, http.StatusBadRequest, 3003, "invalid request: "+err.Error())
+		return
+	}
+
+	result, err := service.SendNotify(c.Request.Context(), db, req)
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, 3004, err.Error())
+		return
+	}
+	response.Success(c, result)
 }

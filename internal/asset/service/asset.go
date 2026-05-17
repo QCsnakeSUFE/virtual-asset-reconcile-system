@@ -166,7 +166,7 @@ func GetUserAssets(ctx context.Context, db *gorm.DB, tenantID, userID string) ([
 
 func GetGrantStatus(ctx context.Context, db *gorm.DB, tenantID, sourceOrderNo string) (*GrantStatusResult, error) {
 	var ledger model.AssetLedger
-	err := db.WithContext(ctx).Where("tenant_id = ? AND source_order_no = ?", tenantID, sourceOrderNo).Find(&ledger).Error
+	err := db.WithContext(ctx).Where("tenant_id = ? AND source_order_no = ?", tenantID, sourceOrderNo).First(&ledger).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &GrantStatusResult{Processed: false}, nil

@@ -52,7 +52,10 @@ func ReconcileRun(c *gin.Context, db *gorm.DB) {
 				Quantity:      item.Quantity,
 				SourceOrderNo: order.OrderNo,
 			}
-			payloadBytes, _ := json.Marshal(payload)
+			payloadBytes, err := json.Marshal(payload)
+			if err != nil {
+				continue
+			}
 
 			msg := model.OutboxMessage{
 				ID:          idgen.NextID(),

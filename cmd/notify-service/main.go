@@ -1,14 +1,18 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"virtual-asset-reconcile-system/internal/db"
 	"virtual-asset-reconcile-system/internal/middleware"
 	"virtual-asset-reconcile-system/internal/notify/handler"
 	"virtual-asset-reconcile-system/internal/notify/model"
+	"virtual-asset-reconcile-system/internal/notify/service"
+	"virtual-asset-reconcile-system/internal/outbox"
 	"virtual-asset-reconcile-system/pkg/logger"
 
 	"github.com/gin-gonic/gin"
@@ -65,6 +69,10 @@ func main() {
 		port = "8082"
 	}
 
+	// notify handler registration & start goroutine
+	consumer := outbox.NewConsumer(database, 5*time.Second)
+	consumer.RegisterHandler("NOTICE_SEND", service.OutboxNotifyHandler)
+	go consumer.Start(context.Background())
 	logger.L.Info("starting server", zap.String("port", port))
 	if err := r.Run(":" + port); err != nil {
 		log.Fatalf("server exit: %v", err)

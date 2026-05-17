@@ -1,14 +1,18 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"virtual-asset-reconcile-system/internal/asset/handler"
 	"virtual-asset-reconcile-system/internal/asset/model"
+	"virtual-asset-reconcile-system/internal/asset/service"
 	"virtual-asset-reconcile-system/internal/db"
 	"virtual-asset-reconcile-system/internal/middleware"
+	"virtual-asset-reconcile-system/internal/outbox"
 	"virtual-asset-reconcile-system/pkg/logger"
 
 	"github.com/gin-gonic/gin"
@@ -67,6 +71,10 @@ func main() {
 	if port == "" {
 		port = "8081"
 	}
+	// outbox handler registeration & start goroutine
+	consumer := outbox.NewConsumer(database, 5*time.Second)
+	consumer.RegisterHandler("ASSET_GRANT", service.OutboxAssetHandler)
+	go consumer.Start(context.Background())
 
 	logger.L.Info("starting server", zap.String("port", port))
 	if err := r.Run(":" + port); err != nil {

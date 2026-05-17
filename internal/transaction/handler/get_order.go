@@ -18,7 +18,7 @@ func GetOrder(c *gin.Context, db *gorm.DB) {
 	}
 
 	var order model.Order
-	if err := db.Where("order_no = ?", orderNo).First(&order).Error; err != nil {
+	if err := db.WithContext(c.Request.Context()).Where("order_no = ?", orderNo).First(&order).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			response.Error(c, http.StatusNotFound, 1006, "order not found")
 			return
@@ -28,7 +28,7 @@ func GetOrder(c *gin.Context, db *gorm.DB) {
 	}
 
 	var items []model.OrderItem
-	db.Where("order_id = ?", order.ID).Find(&items)
+	db.WithContext(c.Request.Context()).Where("order_id = ?", order.ID).Find(&items)
 
 	response.Success(c, gin.H{
 		"order": order,

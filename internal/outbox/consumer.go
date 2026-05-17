@@ -63,7 +63,12 @@ func (c Consumer) processMessages(ctx context.Context) {
 			logger.L.Warn("not handler not registered for event type")
 			continue
 		}
-		handlerErr := handler(ctx, c.db, msg)
+		// update trace_id in context 
+		traceCtx := ctx 
+		if msg.TraceID != "" {
+			traceCtx = context.WithValue(ctx, "trace_id", msg.TraceID)
+		}
+		handlerErr := handler(traceCtx, c.db, msg)
 		if handlerErr != nil {
 			logger.L.Warn("handler failed", zap.String("event_type", msg.EventType), zap.Error(handlerErr))
 			c.retryOrFail(ctx, &msg)

@@ -63,7 +63,10 @@ func ProcessPaymentCallback(ctx context.Context, db *gorm.DB, req PaymentCallbac
 				Quantity:      item.Quantity,
 				SourceOrderNo: req.OrderNo,
 			}
-			payloadBytes, _ := json.Marshal(payload)
+			payloadBytes, err := json.Marshal(payload)
+			if err != nil {
+				return err
+			}
 
 			msg := model.OutboxMessage{
 				ID:          idgen.NextID(),
@@ -80,12 +83,15 @@ func ProcessPaymentCallback(ctx context.Context, db *gorm.DB, req PaymentCallbac
 			}
 		}
 		// 3.3 再加一条 NOTICE_SEND 消息
-		noticePayload, _ := json.Marshal(map[string]string{
+		noticePayload, err := json.Marshal(map[string]string{
 			"tenant_id": req.TenantID,
 			"user_id":   order.UserID,
 			"order_no":  req.OrderNo,
 			"msg":       "您的订单已支付成功，资产已发放。",
 		})
+		if err != nil {
+			return err
+		}
 		noticeMsg := model.OutboxMessage{
 			ID:          idgen.NextID(),
 			TenantID:    req.TenantID,

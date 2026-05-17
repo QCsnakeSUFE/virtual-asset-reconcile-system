@@ -78,9 +78,9 @@ func SendNotify(ctx context.Context, db *gorm.DB, req SendNotifyRequest) (*SendN
 	}, nil
 }
 
-func GetNotifyStatus(ctx context.Context, db *gorm.DB, orderNo string) (*model.Notification, error) {
+func GetNotifyStatus(ctx context.Context, db *gorm.DB, tenantID string, orderNo string) (*model.Notification, error) {
 	var notification model.Notification
-	err := db.WithContext(ctx).Where("biz_no = ?", orderNo).First(&notification).Error
+	err := db.WithContext(ctx).Where("tenant_id = ? AND biz_no = ?", tenantID, orderNo).First(&notification).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("not found")

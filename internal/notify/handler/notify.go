@@ -11,13 +11,16 @@ import (
 )
 
 func GetNotifyStatus(c *gin.Context, db *gorm.DB) {
+
+	tenantID, _ := c.Get("tenant_id")
+	tenantIDStr := tenantID.(string)
+
 	orderNo := c.Query("order_no")
 	if orderNo == "" {
 		response.Error(c, http.StatusBadRequest, 3001, "order_no is required")
 		return
 	}
-
-	notification, err := service.GetNotifyStatus(c.Request.Context(), db, orderNo)
+	notification, err := service.GetNotifyStatus(c.Request.Context(), db, tenantIDStr, orderNo)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, 3002, err.Error())
 		return

@@ -90,7 +90,7 @@ func CreateOrder(ctx context.Context, db *gorm.DB, req CreateOrderRequest) (*Ord
 			TotalAmount:   totalAmount,
 			Status:        "CREATED",
 			IdempotentKey: req.IdempotentKey,
-			TraceID:       "",
+			TraceID:       ctx.Value("trace_id").(string),
 		}
 		err := db.Transaction(func(tx *gorm.DB) error {
 			if err := tx.Create(order).Error; err != nil {
@@ -155,7 +155,7 @@ func CreateDirectOrder(ctx context.Context, db *gorm.DB, req CreateDirectOrderRe
 		TotalAmount:   0,
 		Status:        "PAID",
 		IdempotentKey: req.IdempotentKey,
-		TraceID:       "",
+		TraceID:       ctx.Value("trace_id").(string),
 	}
 
 	err = db.Transaction(func(tx *gorm.DB) error {

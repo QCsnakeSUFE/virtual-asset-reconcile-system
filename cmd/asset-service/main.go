@@ -74,6 +74,7 @@ func main() {
 	// outbox handler registeration & start goroutine
 	consumer := outbox.NewConsumer(database, 5*time.Second)
 	consumer.RegisterHandler("ASSET_GRANT", service.OutboxAssetHandler)
+	consumer.RegisterHandler("ASSET_DEDUCT", service.OutboxDeductHandler)
 	go consumer.Start(context.Background())
 
 	logger.L.Info("starting server", zap.String("port", port))

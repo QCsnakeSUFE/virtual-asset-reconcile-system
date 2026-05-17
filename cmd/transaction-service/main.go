@@ -55,6 +55,12 @@ func main() {
 		api.POST("/orders/purchase", func(c *gin.Context) {
 			handler.Purchase(c, database)
 		})
+		api.POST("/orders/grant", func(c *gin.Context) {
+			handler.Grant(c, database)
+		})
+		api.POST("/orders/gift", func(c *gin.Context) {
+			handler.Gift(c, database)
+		})
 		api.POST("/orders/payment/callback", func(c *gin.Context) {
 			handler.PaymentCallback(c, database)
 		})

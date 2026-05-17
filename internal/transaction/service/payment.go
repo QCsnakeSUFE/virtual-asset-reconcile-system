@@ -7,6 +7,7 @@ import (
 	"time"
 	"virtual-asset-reconcile-system/internal/transaction/model"
 	"virtual-asset-reconcile-system/pkg/idgen"
+	"virtual-asset-reconcile-system/pkg/metrics"
 
 	"gorm.io/gorm"
 )
@@ -102,5 +103,9 @@ func ProcessPaymentCallback(ctx context.Context, db *gorm.DB, req PaymentCallbac
 		return nil
 	})
 
+	if err != nil {
+		// payment callback failed
+		metrics.OrderFailedTotal.Inc()
+	}
 	return err
 }

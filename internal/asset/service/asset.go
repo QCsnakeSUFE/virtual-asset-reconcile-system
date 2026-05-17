@@ -6,6 +6,7 @@ import (
 	"virtual-asset-reconcile-system/internal/asset/model"
 	"virtual-asset-reconcile-system/pkg/idgen"
 	"virtual-asset-reconcile-system/pkg/logger"
+	"virtual-asset-reconcile-system/pkg/metrics"
 
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -123,9 +124,13 @@ func GrantAsset(ctx context.Context, db *gorm.DB, req GrantAssetRequest) (*Grant
 				return nil
 			})
 			if transactionErr != nil {
+				// asset grant failed
+				metrics.AssetGrantFailedTotal.Inc()
 				logger.L.Error("asset grant transaction failed", zap.String("source_order_no", req.SourceOrderNo), zap.Error(transactionErr))
 				return nil, transactionErr
 			}
+			// asset grant succeeded
+			metrics.AssetGrantTotal.Inc()
 			return res, nil
 		}
 		return nil, err

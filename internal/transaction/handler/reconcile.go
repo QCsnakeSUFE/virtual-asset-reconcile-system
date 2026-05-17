@@ -8,6 +8,7 @@ import (
 	"virtual-asset-reconcile-system/internal/transaction/model"
 	"virtual-asset-reconcile-system/internal/transaction/service"
 	"virtual-asset-reconcile-system/pkg/idgen"
+	"virtual-asset-reconcile-system/pkg/metrics"
 	"virtual-asset-reconcile-system/pkg/response"
 
 	"github.com/gin-gonic/gin"
@@ -68,8 +69,12 @@ func ReconcileRun(c *gin.Context, db *gorm.DB) {
 				NextRetryAt: time.Now(),
 			}
 			if err := db.Create(&msg).Error; err != nil {
+				// reconcile fix failed
+				metrics.ReconcileFailedTotal.Inc()
 				continue
 			}
+			// reconcile fix succeeded
+			metrics.ReconcileRetryTotal.Inc()
 			report.Fixed++
 		}
 	}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"virtual-asset-reconcile-system/internal/transaction/model"
 	"virtual-asset-reconcile-system/pkg/idgen"
+	"virtual-asset-reconcile-system/pkg/metrics"
 
 	"gorm.io/gorm"
 )
@@ -34,6 +35,7 @@ func CreateOrder(ctx context.Context, db *gorm.DB, req CreateOrderRequest) (*Ord
 	var existing model.Order
 
 	err := db.Where("tenant_id = ? AND idempotent_key = ?", req.TenantID, req.IdempotentKey).First(&existing).Error
+	// existing
 	if err == nil {
 		res := &OrderResult{
 			OrderNo:     existing.OrderNo,
@@ -42,8 +44,9 @@ func CreateOrder(ctx context.Context, db *gorm.DB, req CreateOrderRequest) (*Ord
 		}
 		return res, nil
 	}
-	// 如果First 返回错误是 gorm.ErrRecordNotFound，说明订单不存在，这个时候直接创建新的订单
+	// err != nil, check error type
 	if errors.Is(err, gorm.ErrRecordNotFound) {
+		// create one, OrderTotal++
 		orderID := idgen.NextID()
 		var totalAmount int64
 		var orderItems []model.OrderItem
@@ -82,14 +85,17 @@ func CreateOrder(ctx context.Context, db *gorm.DB, req CreateOrderRequest) (*Ord
 			return nil
 		})
 		if err != nil {
+			metrics.OrderFailedTotal.Inc()
 			return nil, err
 		}
 		res := &OrderResult{
 			OrderNo:     fmt.Sprintf("%d", orderID),
 			TotalAmount: totalAmount,
 		}
+		metrics.OrderTotal.Inc()
 		return res, nil
 	} else {
+		metrics.OrderFailedTotal.Inc()
 		return nil, err
 	}
 }

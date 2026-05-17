@@ -5,6 +5,7 @@ import (
 	"time"
 	"virtual-asset-reconcile-system/internal/transaction/model"
 	"virtual-asset-reconcile-system/pkg/logger"
+	"virtual-asset-reconcile-system/pkg/metrics"
 
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -43,6 +44,10 @@ func (c Consumer) Start(ctx context.Context) {
 
 func (c Consumer) processMessages(ctx context.Context) {
 	var err error
+	var pendingCount int64
+	c.db.WithContext(ctx).Model(&model.OutboxMessage{}).Where("status = ?", "PENDING").Count(&pendingCount)
+	metrics.OutboxPendingTotal.Set(float64(pendingCount))
+
 	var messages []model.OutboxMessage
 	err = c.db.WithContext(ctx).Where("status = ? AND next_retry_at <= ?", "PENDING", time.Now()).Limit(10).Find(&messages).Error
 	if err != nil {
